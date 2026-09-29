@@ -81,7 +81,9 @@ enum my_keycodes {
   PKC_GESTURE,
   PKC_DRAG_SCROLL,
   PKC_ADJUST_LED_BRIGHTNESS,
-  PKC_BLINKY_DPI_CONFIG
+  PKC_BLINKY_DPI_CONFIG,
+  PKC_SPACE_PREV,
+  PKC_SPACE_NEXT
 };
 
 /* Layer names. */
@@ -103,6 +105,22 @@ static void tap_edit_shortcut(uint16_t keycode) {
     }
 }
 
+/* Switch to the next (KC_RIGHT) or previous (KC_LEFT) virtual desktop. */
+static void tap_switch_space(uint16_t arrow) {
+    /* On Windows, send CTRL + LGUI + arrow. */
+    if ( detected_host_os() == OS_WINDOWS ) {
+        tap_code16( LCG( arrow ) );
+    }
+    /* On Linux, send CTRL + ALT + arrow. */
+    else if( detected_host_os() == OS_LINUX ) {
+        tap_code16( LCA( arrow ) );
+    }
+    /* On MacOs, send Control + arrow. */
+    else {
+        tap_code16( LCTL( arrow ) );
+    }
+}
+
 /* Override default function in submodule code so that we can blink whenever
    a successful gesture is registered. */
 void pointing_device_gestures_trigger(uint8_t direction) {
@@ -110,18 +128,7 @@ void pointing_device_gestures_trigger(uint8_t direction) {
     /* Directions are numbered off 0-7, starting with east. */
     switch( direction ) {
         case 0: /* East, Next Virtual Desktop. */
-            /* On Windows, send CTRL + LGUI + RIGHT. */
-            if ( detected_host_os() == OS_WINDOWS ) {
-                tap_code16( LCG( KC_RIGHT ) );
-            }
-            /* On Linux, send CTRL + ALT + RIGHT. */
-            else if( detected_host_os() == OS_LINUX ) {
-                tap_code16( LCA( KC_RIGHT ) );
-            }
-            /* On MacOs, send Control + RIGHT. */
-            else {
-                tap_code16( LCTL( KC_RIGHT ) );
-            }
+            tap_switch_space( KC_RIGHT );
             break;
         case 1: /* South-East, Paste. */
             tap_edit_shortcut( KC_V );
@@ -133,18 +140,7 @@ void pointing_device_gestures_trigger(uint8_t direction) {
             tap_edit_shortcut( KC_X );
             break;
         case 4: /* West, Previous Virtual Desktop. */
-            /* On Windows, send CTRL + LGUI + LEFT. */
-            if ( detected_host_os() == OS_WINDOWS ) {
-                tap_code16( LCG( KC_LEFT ) );
-            }
-            /* On Linux, send CTRL + ALT + LEFT. */
-            else if( detected_host_os() == OS_LINUX ) {
-                tap_code16( LCA( KC_LEFT ) );
-            }
-            /* On MacOs, send Control + LEFT. */
-            else {
-                tap_code16( LCTL( KC_LEFT ) );
-            }
+            tap_switch_space( KC_LEFT );
             break;
         case 5: /* North-West, Undo. */
             tap_edit_shortcut( KC_Z );
@@ -184,7 +180,7 @@ const uint16_t PROGMEM pointing_device_gestures[NUM_GESTURE_DIRECTIONS] =
 /* Keymap. */
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     // Base layer with all of the mouse-related stuff for everyday use.
-    [LAYER_NAV_RIGHT_HANDED] = LAYOUT(  MS_BTN4, MS_BTN5, PKC_DRAG_SCROLL, MS_BTN2, 
+    [LAYER_NAV_RIGHT_HANDED] = LAYOUT(  MS_BTN4, PKC_SPACE_PREV, PKC_SPACE_NEXT, MS_BTN2,
                                         MS_BTN1, MS_BTN3, 
                                         PKC_GESTURE, TG(LAYER_CONTROL) ),
     // Mirror-image of right-handed layout for lefties.
@@ -435,7 +431,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                 dprintf("DPI changed. Current DPI = %d\n", dpi_array[keyboard_config.dpi_config]);
                 rgblight_blink_layer_repeat(OPTION_CHANGED_LAYER_COLOUR, OPTION_CHANGE_BLINK_TIMEOUT, keyboard_config.dpi_config + 1);
             }
-            return true;         
+            return true;
+        case PKC_SPACE_PREV:
+            if (record->event.pressed) {
+                tap_switch_space( KC_LEFT );
+            }
+            return true;
+        case PKC_SPACE_NEXT:
+            if (record->event.pressed) {
+                tap_switch_space( KC_RIGHT );
+            }
+            return true;
         default:
             return true;
     }
