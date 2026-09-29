@@ -180,8 +180,8 @@ const uint16_t PROGMEM pointing_device_gestures[NUM_GESTURE_DIRECTIONS] =
 /* Keymap. */
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     // Base layer with all of the mouse-related stuff for everyday use.
-    [LAYER_NAV_RIGHT_HANDED] = LAYOUT(  MS_BTN4, PKC_SPACE_PREV, PKC_SPACE_NEXT, MS_BTN2,
-                                        MS_BTN1, MS_BTN3, 
+    [LAYER_NAV_RIGHT_HANDED] = LAYOUT(  MS_BTN3, PKC_SPACE_PREV, PKC_SPACE_NEXT, MS_BTN2,
+                                        MS_BTN1, C(KC_UP),
                                         PKC_GESTURE, TG(LAYER_CONTROL) ),
     // Mirror-image of right-handed layout for lefties.
     [LAYER_NAV_LEFT_HANDED] = LAYOUT(   MS_BTN2, PKC_DRAG_SCROLL, MS_BTN4, MS_BTN5, 
