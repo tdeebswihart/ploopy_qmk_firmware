@@ -33,7 +33,7 @@ uint32_t last_scroll_time = 0;
 
 /* Layer lighting, used to blink when making gestures. */
 const rgblight_segment_t PROGMEM righty_nav_layer_colour[] =        RGBLIGHT_LAYER_SEGMENTS( {0, 2, HSV_NAVBLUE} );
-const rgblight_segment_t PROGMEM lefty_nav_layer_colour[] =         RGBLIGHT_LAYER_SEGMENTS( {0, 2, HSV_NAVGREEN} );
+const rgblight_segment_t PROGMEM edit_layer_colour[] =              RGBLIGHT_LAYER_SEGMENTS( {0, 2, HSV_NAVGREEN} );
 const rgblight_segment_t PROGMEM control_layer_colour[] =           RGBLIGHT_LAYER_SEGMENTS( {0, 2, HSV_RED} );
 const rgblight_segment_t PROGMEM gesture_layer_colour[] =           RGBLIGHT_LAYER_SEGMENTS( {0, 2, HSV_GESTUREYELLOW} );
 const rgblight_segment_t PROGMEM option_changed_layer_colour[] =    RGBLIGHT_LAYER_SEGMENTS( {0, 2, HSV_OPTIONCHANGED} );
@@ -42,7 +42,7 @@ const rgblight_segment_t PROGMEM option_changed_layer_colour[] =    RGBLIGHT_LAY
    are defined in the order that they will be displayed in. */
 const rgblight_segment_t* const PROGMEM my_rgb_layers[] = RGBLIGHT_LAYERS_LIST(
     righty_nav_layer_colour,
-    lefty_nav_layer_colour,
+    edit_layer_colour,
     control_layer_colour,
     gesture_layer_colour,
     option_changed_layer_colour
@@ -51,7 +51,7 @@ const rgblight_segment_t* const PROGMEM my_rgb_layers[] = RGBLIGHT_LAYERS_LIST(
 /* Colour layer names. */
 enum {
     RIGHTY_NAV_LAYER_COLOUR = 0,
-    LEFTY_NAV_LAYER_COLOUR,
+    EDIT_LAYER_COLOUR,
     CONTROL_LAYER_COLOUR,
     GESTURE_LAYER_COLOUR,
     OPTION_CHANGED_LAYER_COLOUR    
@@ -62,7 +62,7 @@ enum {
 typedef union {
   uint32_t raw;
   struct {
-    bool    left_handed :1;
+    bool    left_handed :1; // Retained to preserve the EEPROM layout.
     bool    horizontal_scroll_arrows :1;
     bool    vertical_scroll_arrows :1;
     bool    drag_scroll_mode :1;
@@ -74,7 +74,7 @@ user_config_t user_config;
 
 /* Add custom keycodes for control layer. */
 enum my_keycodes {
-  PKC_TGL_MIRROR = SAFE_RANGE,
+  PKC_TGL_MIRROR = SAFE_RANGE, // Reserved to preserve saved VIA keycode values.
   PKC_TGL_VERT_SCRL,
   PKC_TGL_HORIZ_SCRL,
   PKC_TGL_DRAG_SCRL,
@@ -83,13 +83,16 @@ enum my_keycodes {
   PKC_ADJUST_LED_BRIGHTNESS,
   PKC_BLINKY_DPI_CONFIG,
   PKC_SPACE_PREV,
-  PKC_SPACE_NEXT
+  PKC_SPACE_NEXT,
+  PKC_COPY,
+  PKC_PASTE,
+  PKC_CUT
 };
 
 /* Layer names. */
 enum {
     LAYER_NAV_RIGHT_HANDED = 0,
-    LAYER_NAV_LEFT_HANDED,
+    LAYER_EDIT,
     LAYER_CONTROL
 };
 
@@ -180,16 +183,15 @@ const uint16_t PROGMEM pointing_device_gestures[NUM_GESTURE_DIRECTIONS] =
 /* Keymap. */
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     // Base layer with all of the mouse-related stuff for everyday use.
-    [LAYER_NAV_RIGHT_HANDED] = LAYOUT(  MS_BTN3, PKC_SPACE_PREV, PKC_SPACE_NEXT, MS_BTN2,
+    [LAYER_NAV_RIGHT_HANDED] = LAYOUT(  MO(LAYER_EDIT), PKC_SPACE_PREV, PKC_SPACE_NEXT, MS_BTN2,
                                         MS_BTN1, C(KC_UP),
                                         PKC_GESTURE, TG(LAYER_CONTROL) ),
-    // Mirror-image of right-handed layout for lefties.
-    [LAYER_NAV_LEFT_HANDED] = LAYOUT(   MS_BTN2, PKC_DRAG_SCROLL, MS_BTN4, MS_BTN5, 
-                                        MS_BTN3, MS_BTN1, 
-                                        TG(LAYER_CONTROL), PKC_GESTURE ),
+    [LAYER_EDIT] = LAYOUT(             _______, PKC_COPY, PKC_PASTE, PKC_CUT,
+                                        LCA(KC_A), _______,
+                                        _______, _______ ),
     // Layer for all of the customization options.
     [LAYER_CONTROL] = LAYOUT(           PKC_BLINKY_DPI_CONFIG, PKC_ADJUST_LED_BRIGHTNESS, PKC_TGL_VERT_SCRL, PKC_TGL_HORIZ_SCRL,
-                                        PKC_TGL_MIRROR, PKC_TGL_DRAG_SCRL, 
+                                        KC_NO, PKC_TGL_DRAG_SCRL,
                                         TG(LAYER_CONTROL), TG(LAYER_CONTROL) ),
     [3] = LAYOUT( _______, _______, _______, _______, _______, _______, _______, _______ ),
     [4] = LAYOUT( _______, _______, _______, _______, _______, _______, _______, _______ ),
@@ -205,24 +207,24 @@ layer_state_t layer_state_set_user(layer_state_t state) {
         case LAYER_NAV_RIGHT_HANDED:
             rgblight_set_layer_state(RIGHTY_NAV_LAYER_COLOUR, true);
             
-            rgblight_set_layer_state(LEFTY_NAV_LAYER_COLOUR, false);
+            rgblight_set_layer_state(EDIT_LAYER_COLOUR, false);
             rgblight_set_layer_state(CONTROL_LAYER_COLOUR, false);            
 
             dprintf("change layer: right-handed nav\n");
             break;
-        case LAYER_NAV_LEFT_HANDED:
-            rgblight_set_layer_state(LEFTY_NAV_LAYER_COLOUR, true);
+        case LAYER_EDIT:
+            rgblight_set_layer_state(EDIT_LAYER_COLOUR, true);
 
             rgblight_set_layer_state(RIGHTY_NAV_LAYER_COLOUR, false);
             rgblight_set_layer_state(CONTROL_LAYER_COLOUR, false);  
 
-            dprintf("change layer: left-handed nav\n");
+            dprintf("change layer: editing\n");
             break;
         case LAYER_CONTROL:
             rgblight_set_layer_state(CONTROL_LAYER_COLOUR, true);
             
             rgblight_set_layer_state(RIGHTY_NAV_LAYER_COLOUR, false);
-            rgblight_set_layer_state(LEFTY_NAV_LAYER_COLOUR, false); 
+            rgblight_set_layer_state(EDIT_LAYER_COLOUR, false);
 
             dprintf("change layer: control\n");
             break;
@@ -296,10 +298,7 @@ void keyboard_post_init_user(void) {
     /* Load up configuration details from the EEPROM. */
     user_config.raw = eeconfig_read_user();
 
-    /* Set the startup layer based on handed-ness. */
-    if( user_config.left_handed ) {
-        layer_on(LAYER_NAV_LEFT_HANDED);
-    }
+    user_config.left_handed = false;
 
 
     /* ============================ Lighting Setup ========================= */
@@ -313,29 +312,13 @@ void keyboard_post_init_user(void) {
 
     /* Set an initial colour to establish a baseline brightness for the RGB layers. */
     rgblight_sethsv(0, 0, RGBLIGHT_VAL_STEP * user_config.led_brightness);
+
+    default_layer_set(1UL << LAYER_NAV_RIGHT_HANDED);
+    layer_clear();
 }  
 
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     switch (keycode) {
-        case PKC_TGL_MIRROR:
-            if (record->event.pressed) {
-                /* Toggle handed-ness, record new state to EEPROM. */
-                user_config.left_handed ^= 1;
-                eeconfig_update_user(user_config.raw);
-
-                /* Activate the correct navigation layer and blink the LEDs. */
-                if( user_config.left_handed ) {
-                    dprintf( "Lefty nav mode.\n");
-                    layer_on(LAYER_NAV_LEFT_HANDED);
-                    rgblight_blink_layer(OPTION_CHANGED_LAYER_COLOUR, OPTION_CHANGE_BLINK_TIMEOUT*2);
-                }
-                else {
-                    dprintf( "Righty nav mode.\n");
-                    layer_off(LAYER_NAV_LEFT_HANDED);
-                    rgblight_blink_layer_repeat(OPTION_CHANGED_LAYER_COLOUR, OPTION_CHANGE_BLINK_TIMEOUT, 2);
-                }
-            }
-            return true;
         case PKC_TGL_VERT_SCRL:
             if (record->event.pressed) {
                 user_config.vertical_scroll_arrows ^= 1;
@@ -442,6 +425,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
                 tap_switch_space( KC_RIGHT );
             }
             return true;
+        case PKC_COPY:
+            if (record->event.pressed) {
+                tap_edit_shortcut( KC_C );
+            }
+            return false;
+        case PKC_PASTE:
+            if (record->event.pressed) {
+                tap_edit_shortcut( KC_V );
+            }
+            return false;
+        case PKC_CUT:
+            if (record->event.pressed) {
+                tap_edit_shortcut( KC_X );
+            }
+            return false;
         default:
             return true;
     }
